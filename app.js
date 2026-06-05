@@ -543,8 +543,7 @@ function capitalize(s) {
 function weekStart(offset) {
   const d = offsetToDate(offset);
   const dow = (d.getDay() + 6) % 7; // lundi = 0
-  const start = offset - dow;
-  return Math.max(0, start);
+  return offset - dow;
 }
 
 function weekRangeLabel(wStart) {
