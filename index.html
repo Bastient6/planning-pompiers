@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Gardes 2026</title>
+<link rel="manifest" href="manifest.json">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #534AB7;
+  --purple-light: #EEEDFE;
+  --purple-border: #AFA9EC;
+  --green-light: #EAF3DE;
+  --green-dark: #27500A;
+  --amber-light: #FAEEDA;
+  --amber-dark: #633806;
+  --coral-light: #FAECE7;
+  --coral-dark: #712B13;
+  --blue-light: #E6F1FB;
+  --blue-dark: #0C447C;
+  --red: #E24B4A;
+  --teal: #1D9E75;
+  --border: rgba(0,0,0,0.12);
+  --bg: #F5F4F0;
+  --surface: #fff;
+  --text: #1a1a1a;
+  --text-muted: #666;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* Auth screen */
+#auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 24px; padding: 24px; }
+.auth-card { background: var(--surface); border-radius: 16px; padding: 32px; max-width: 360px; width: 100%; text-align: center; border: 0.5px solid var(--border); }
+.auth-logo { font-size: 32px; margin-bottom: 12px; }
+.auth-title { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+.auth-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.15s; }
+.btn-google:hover { background: #f8f8f8; }
+.btn-google svg { width: 20px; height: 20px; }
+
+/* Main app */
+#app { display: none; flex-direction: column; min-height: 100vh; max-width: 480px; margin: 0 auto; }
+#app.visible { display: flex; }
+
+.topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 15px; font-weight: 600; }
+.user-chip { display: flex; align-items: center; gap: 8px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.avatar-initials { width: 30px; height: 30px; border-radius: 50%; background: var(--purple-light); color: var(--purple); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.btn-logout { font-size: 12px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; }
+
+.content { flex: 1; padding: 12px; overflow-y: auto; }
+
+/* Bottom nav */
+.bottom-nav { background: var(--surface); border-top: 0.5px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); position: sticky; bottom: 0; }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 10px; font-weight: 500; }
+.nav-btn svg { width: 22px; height: 22px; }
+.nav-btn.active { color: var(--purple); }
+
+/* Cards */
+.card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px; margin-bottom: 10px; }
+.card-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
+
+/* Equipe badges */
+.eq-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.eq-E1 { background: var(--amber-light); color: var(--amber-dark); }
+.eq-E2 { background: var(--purple-light); color: #3C3489; }
+.eq-E3 { background: var(--green-light); color: var(--green-dark); }
+.eq-E4 { background: var(--coral-light); color: var(--coral-dark); }
+
+/* Agent row */
+.agent-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 7px 4px; border-bottom: 0.5px solid var(--border); }
+.agent-row:last-child { border-bottom: none; }
+.agent-name { font-size: 13px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.badge-sm { font-size: 10px; padding: 1px 6px; border-radius: 20px; }
+.soff { background: var(--blue-light); color: var(--blue-dark); }
+.cond { background: var(--green-light); color: var(--green-dark); }
+
+/* Equity bar */
+.eq-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.eq-bar { width: 60px; height: 5px; border-radius: 3px; background: #eee; overflow: hidden; }
+.eq-fill { height: 100%; border-radius: 3px; }
+.fill-low { background: var(--teal); }
+.fill-mid { background: #EF9F27; }
+.fill-high { background: var(--red); }
+.eq-pct { font-size: 11px; color: var(--text-muted); min-width: 28px; }
+
+/* Affect button */
+.btn-affect { font-size: 11px; padding: 4px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: #f5f5f5; white-space: nowrap; }
+.btn-affect:hover { background: var(--purple-light); border-color: var(--purple-border); color: var(--purple); }
+.btn-done { font-size: 11px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--green-light); color: var(--green-dark); font-weight: 600; }
+
+/* Day nav */
+.day-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.day-nav button { border: 0.5px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-size: 16px; }
+.day-nav .day-label { flex: 1; text-align: center; font-weight: 600; font-size: 14px; }
+
+/* Modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: 16px 16px 0 0; padding: 20px; width: 100%; max-width: 480px; }
+.modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.type-btn { padding: 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; background: #f9f9f9; text-align: center; }
+.type-btn.sel { background: var(--purple-light); border-color: var(--purple-border); color: var(--purple); }
+.btn-confirm { width: 100%; padding: 13px; background: var(--purple); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-confirm:disabled { background: #ccc; cursor: default; }
+.btn-cancel { width: 100%; padding: 10px; background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; margin-top: 8px; }
+
+/* Week table */
+.week-scroll { overflow-x: auto; }
+.week-table { border-collapse: collapse; min-width: 100%; font-size: 11px; }
+.week-table th, .week-table td { padding: 6px 8px; border: 0.5px solid var(--border); text-align: center; }
+.week-table th { background: #f9f9f9; font-size: 10px; font-weight: 600; }
+.week-table td:first-child { text-align: left; font-size: 12px; min-width: 90px; }
+.cell-j { background: var(--green-light); color: var(--green-dark); border-radius: 3px; padding: 1px 4px; }
+.cell-m { background: var(--blue-light); color: var(--blue-dark); border-radius: 3px; padding: 1px 4px; }
+.cell-am { background: var(--amber-light); color: var(--amber-dark); border-radius: 3px; padding: 1px 4px; }
+.cell-af { color: var(--purple); font-weight: 600; }
+
+/* Dispo form */
+.dispo-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+.dispo-row:last-child { border-bottom: none; }
+.dispo-day { width: 80px; font-size: 13px; }
+.dispo-select { flex: 1; padding: 7px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-size: 13px; }
+.dispo-affect { font-size: 11px; color: var(--purple); font-weight: 600; }
+
+/* Stats */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; }
+.stat-val { font-size: 22px; font-weight: 700; }
+.stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+/* Loading / error */
+.loader { text-align: center; padding: 40px; color: var(--text-muted); }
+.error-msg { background: #fff0f0; border: 0.5px solid #fcc; border-radius: var(--radius-sm); padding: 12px; font-size: 13px; color: #c00; margin-bottom: 10px; }
+.saving-indicator { position: fixed; bottom: 80px; right: 16px; background: var(--purple); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 20px; z-index: 100; display: none; }
+.saving-indicator.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Auth screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">🚒</div>
+    <div class="auth-title">Planning Gardes 2026</div>
+    <div class="auth-sub">Connecte-toi avec ton compte Google pour accéder au planning</div>
+    <button class="btn-google" id="btn-signin">
+      <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Se connecter avec Google
+    </button>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">🚒 Planning 2026</div>
+    <div class="user-chip">
+      <span class="avatar-initials" id="user-initials"></span>
+      <span style="font-size:13px;font-weight:500" id="user-name-short"></span>
+      <button class="btn-logout" onclick="signOut()">↩</button>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+    <div class="loader">Chargement...</div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showTab('planning', this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Planning
+    </button>
+    <button class="nav-btn" onclick="showTab('semaine', this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Semaine
+    </button>
+    <button class="nav-btn" onclick="showTab('equite', this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Équité
+    </button>
+    <button class="nav-btn" onclick="showTab('dispos', this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Mes dispos
+    </button>
+  </nav>
+</div>
+
+<!-- Affect modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="m-title">Affecter</div>
+    <div class="modal-sub" id="m-sub"></div>
+    <div class="type-grid" id="m-types"></div>
+    <button class="btn-confirm" id="m-confirm" onclick="confirmAffect()" disabled>Confirmer</button>
+    <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+  </div>
+</div>
+
+<div class="saving-indicator" id="saving">Enregistrement...</div>
+
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="sheets.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
