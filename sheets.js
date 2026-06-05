@@ -24,7 +24,10 @@ async function sheetsGetMultiple(ranges) {
 // ── Écriture ─────────────────────────────────────────────────
 
 async function sheetsUpdate(range, values) {
-  await ensureAccessToken();
+  if (!accessToken) {
+    tokenClient.requestAccessToken({ prompt: "" });
+    await new Promise(res => setTimeout(res, 1500));
+  }
   const url = `${SHEETS_BASE}/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
   const r = await fetch(url, {
     method: "PUT",
@@ -42,7 +45,10 @@ async function sheetsUpdate(range, values) {
 }
 
 async function sheetsBatchUpdate(data) {
-  await ensureAccessToken();
+  if (!accessToken) {
+    tokenClient.requestAccessToken({ prompt: "" });
+    await new Promise(res => setTimeout(res, 1500));
+  }
   const url = `${SHEETS_BASE}/${CONFIG.SHEET_ID}/values:batchUpdate`;
   const r = await fetch(url, {
     method: "POST",
@@ -112,18 +118,9 @@ async function saveDispoCell(sheetRow, sheetCol, value) {
 }
 
 async function saveAffectCell(sheetRow, sheetCol, value) {
-
   const col = colLetter(sheetCol);
-
-  const range =
-    `${CONFIG.SHEETS.SAISON}!${col}${sheetRow}`;
-
-  console.log("SAVE AFFECT");
-  console.log("Range =", range);
-  console.log("Value =", value);
-
+  const range = `${CONFIG.SHEETS.SAISON}!${col}${sheetRow}`;
   showSaving(true);
-
   try {
     await sheetsUpdate(range, [[value]]);
   } finally {
