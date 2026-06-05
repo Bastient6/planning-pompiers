@@ -29,7 +29,24 @@ function initGoogle() {
   }
 
   document.getElementById("btn-signin").addEventListener("click", () => {
-    google.accounts.id.prompt();
+
+    google.accounts.id.prompt((notification) => {
+
+      if (
+        notification.isNotDisplayed() ||
+        notification.isSkippedMoment()
+      ) {
+
+        google.accounts.oauth2.initCodeClient({
+          client_id: CONFIG.GOOGLE_CLIENT_ID,
+          scope: "openid email profile",
+          ux_mode: "popup",
+          callback: () => {}
+        }).requestCode();
+
+      }
+    });
+
   });
 }
 
