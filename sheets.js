@@ -112,9 +112,18 @@ async function saveDispoCell(sheetRow, sheetCol, value) {
 }
 
 async function saveAffectCell(sheetRow, sheetCol, value) {
+
   const col = colLetter(sheetCol);
-  const range = `${CONFIG.SHEETS.SAISON}!${col}${sheetRow}`;
+
+  const range =
+    `${CONFIG.SHEETS.SAISON}!${col}${sheetRow}`;
+
+  console.log("SAVE AFFECT");
+  console.log("Range =", range);
+  console.log("Value =", value);
+
   showSaving(true);
+
   try {
     await sheetsUpdate(range, [[value]]);
   } finally {

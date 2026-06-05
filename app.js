@@ -440,18 +440,55 @@ function selectType(btn, type) {
 }
 
 async function confirmAffect() {
-  if (!state.modalAgent || !state.modalType) return;
+
+  if (!state.modalAgent || !state.modalType)
+    return;
+
   const { agentIdx, dayOffset } = state.modalAgent;
-  const cell = (state.cells[dayOffset] || {})[agentIdx];
-  if (!cell) { closeModal(); return; }
-  cell.affect = state.modalType;
-  closeModal();
+
+  const cell =
+    (state.cells[dayOffset] || {})[agentIdx];
+
+  if (!cell) {
+    console.error("Cellule introuvable");
+    closeModal();
+    return;
+  }
+
+  console.log("=== AFFECTATION ===");
+  console.log("Agent :", agentIdx);
+  console.log("Jour :", dayOffset);
+  console.log("Valeur :", state.modalType);
+  console.log("Row :", cell.sheetRow);
+  console.log("Col :", cell.affectCol);
+  console.log("Cell :", cell);
+
   try {
-    await saveAffectCell(cell.sheetRow, cell.affectCol, state.modalType);
+
+    await saveAffectCell(
+      cell.sheetRow,
+      cell.affectCol,
+      state.modalType
+    );
+
+    cell.affect = state.modalType;
+
     computeStats();
+
     renderCurrentTab();
+
+    closeModal();
+
+    console.log("Affectation enregistrée");
+
   } catch (e) {
-    showError("Erreur d'enregistrement : " + e.message);
+
+    console.error(e);
+
+    showError(
+      "Erreur d'enregistrement : " +
+      e.message
+    );
   }
 }
 
