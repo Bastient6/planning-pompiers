@@ -3,6 +3,7 @@
 let currentUser = null;
 let tokenClient = null;
 let accessToken = null;
+let tokenExpiresAt = 0; // timestamp ms
 
 // Chargé par Google Identity Services (GIS)
 function initGoogle() {
@@ -18,6 +19,8 @@ function initGoogle() {
     callback: (resp) => {
       if (resp.error) { console.error(resp); return; }
       accessToken = resp.access_token;
+      // Les tokens Google durent 3600s, on renouvelle à 3400s pour avoir de la marge
+      tokenExpiresAt = Date.now() + 3400 * 1000;
     },
   });
 
@@ -26,6 +29,8 @@ function initGoogle() {
   if (saved) {
     currentUser = JSON.parse(saved);
     showApp();
+    // Demander silencieusement le token d'écriture au chargement
+    tokenClient.requestAccessToken({ prompt: "" });
   }
 
   document.getElementById("btn-signin").addEventListener("click", () => {
@@ -39,7 +44,6 @@ async function handleCredential(response) {
   const name = payload.name;
   const picture = payload.picture;
 
-  // Vérifier que cet email est dans la liste agents du Sheet
   const agentData = await findAgent(email);
   if (!agentData) {
     alert("Accès refusé : " + email + " n'est pas dans la liste des agents. Contacte le planificateur.");
@@ -47,9 +51,7 @@ async function handleCredential(response) {
   }
 
   currentUser = {
-    email,
-    name,
-    picture,
+    email, name, picture,
     agentIdx: agentData.idx,
     agentName: agentData.name,
     isSoff: agentData.soff,
@@ -58,11 +60,24 @@ async function handleCredential(response) {
   };
 
   sessionStorage.setItem("user", JSON.stringify(currentUser));
-
-  // Demander accès en écriture pour les mises à jour Sheet
   tokenClient.requestAccessToken({ prompt: "none" });
-
   showApp();
+}
+
+// Garantit un token valide avant toute écriture — appelé par sheets.js
+async function ensureAccessToken() {
+  if (accessToken && Date.now() < tokenExpiresAt) return; // encore valide
+  return new Promise((resolve) => {
+    const origCallback = tokenClient.callback;
+    tokenClient.callback = (resp) => {
+      if (resp.error) { console.error(resp); resolve(); return; }
+      accessToken = resp.access_token;
+      tokenExpiresAt = Date.now() + 3400 * 1000;
+      tokenClient.callback = origCallback;
+      resolve();
+    };
+    tokenClient.requestAccessToken({ prompt: "" });
+  });
 }
 
 function showApp() {
@@ -84,6 +99,7 @@ function signOut() {
   sessionStorage.removeItem("user");
   currentUser = null;
   accessToken = null;
+  tokenExpiresAt = 0;
   document.getElementById("app").classList.remove("visible");
   document.getElementById("auth-screen").style.display = "";
 }
@@ -93,7 +109,6 @@ function parseJwt(token) {
   return JSON.parse(atob(base64));
 }
 
-// Charger les scripts Google dynamiquement
 (function loadGoogleScripts() {
   const gsi = document.createElement("script");
   gsi.src = "https://accounts.google.com/gsi/client";
