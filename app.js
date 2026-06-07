@@ -14,11 +14,14 @@ const TODAY        = new Date();
 
 let state = {
   tab:        "planning",
-  dayOffset:  daysBetween(SAISON_START, clampDate(TODAY)), // jour courant (planning)
-  weekOffset: weekStart(daysBetween(SAISON_START, clampDate(TODAY))), // lundi de la semaine courante
+  dayOffset:  daysBetween(SAISON_START, clampDate(TODAY)),
+  weekOffset: weekStart(daysBetween(SAISON_START, clampDate(TODAY))),
   agents:     [],
-  cells:      {},   // [dayOffset][agentIdx] = { dispo, affect, sheetRow, dispoCol, affectCol }
+  cells:      {},
+  gardes:     {},   // [dayOffset] = "Garde 2" lu depuis ligne 2 du sheet
   stats:      {},
+  avgRate:    0,
+  maxRate:    0.001,
   modalAgent: null,
   modalType:  null,
   darkMode:   localStorage.getItem("darkMode") === "1",
@@ -47,9 +50,11 @@ async function refreshData() {
 
 function parseSheetData(rows) {
   state.cells = {};
+  state.gardes = {};
   if (!rows || rows.length < 3) return;
 
-  const headerRow    = rows[0] || [];
+  const headerRow  = rows[0] || [];
+  const gardeRow   = rows[1] || [];
   const agentStartRow = 3;
 
   const dayColMap = {};
@@ -61,6 +66,9 @@ function parseSheetData(rows) {
     const offset = daysBetween(SAISON_START, d);
     if (offset >= 0 && offset <= 92) {
       dayColMap[offset] = { dispoCol: c + 1, affectCol: c + 2 };
+      // Ligne 2 : même colonne de départ (c) ou c+1 selon structure — on prend la première non vide des deux
+      const gardeVal = (gardeRow[c] || gardeRow[c + 1] || "").trim();
+      if (gardeVal) state.gardes[offset] = gardeVal;
     }
   }
 
@@ -192,7 +200,7 @@ function renderPlanning(el) {
 
     <div class="day-header">
       <span style="font-size:15px;font-weight:700">${capitalize(dayLabel)}</span>
-      <span class="eq-badge eq-${eq}">${EQUIPE_LABELS[eq]}</span>
+      <span class="eq-badge ${equipeClass(eq)}">${eq}</span>
     </div>
 
     <div class="card">
@@ -236,7 +244,7 @@ function agentRow(a, maxRate, dayOffset) {
       <span class="eq-pct">${pct}%</span>
     </div>
     ${affect
-      ? `<span class="btn-done">${affect}</span>`
+      ? `<button class="btn-done ${affectClass(affect)}" onclick="openModal(${a.idx},'${a.name}','${a.cell.dispo}',${dayOffset},'${affect.replace(/'/g, "\\'")}')">${affect}</button>`
       : canAffect
         ? `<button class="btn-affect" onclick="openModal(${a.idx},'${a.name}','${a.cell.dispo}',${dayOffset})">Affecter</button>`
         : `<span style="font-size:11px;color:var(--text-muted)">—</span>`
@@ -263,7 +271,7 @@ function renderSemaine(el) {
     ${days.map(({ date, offset }) => {
       const eq    = getEquipe(offset);
       const label = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-      return `<th>${label}<br><span class="eq-badge eq-${eq}" style="font-size:9px">${EQUIPE_LABELS[eq]}</span></th>`;
+      return `<th>${label}<br><span class="eq-badge ${equipeClass(eq)}" style="font-size:9px">${eq}</span></th>`;
     }).join("")}
   </tr>`;
 
@@ -273,7 +281,7 @@ function renderSemaine(el) {
     const cells = days.map(({ offset }) => {
       const cell = (state.cells[offset] || {})[a.idx];
       if (!cell || !cell.dispo) return `<td>—</td>`;
-      if (cell.affect) return `<td><span class="cell-af">${cell.affect.split(" ")[0]}</span></td>`;
+      if (cell.affect) return `<td><span class="cell-af ${affectClass(cell.affect)}">${cell.affect.split(" ")[0]}</span></td>`;
       const cls = { J: "cell-j", M: "cell-m", AM: "cell-am" }[cell.dispo] || "";
       return `<td><span class="${cls}">${cell.dispo}</span></td>`;
     }).join("");
@@ -384,7 +392,7 @@ function renderDispos(el) {
         return `<div class="dispo-row ${isToday ? "dispo-row-today" : ""}">
           <div class="dispo-day">
             <span class="dispo-day-name">${capitalize(label)}</span>
-            <span class="eq-badge eq-${eq}" style="font-size:9px">${eq}</span>
+            <span class="eq-badge ${equipeClass(eq)}" style="font-size:9px">${eq}</span>
           </div>
           <select class="dispo-select" onchange="updateDispo(${offset},${agent.idx},this.value)">
             <option value=""  ${!dispo           ? "selected" : ""}>Indispo</option>
@@ -514,9 +522,35 @@ function applyDarkMode() {
 
 // ── Helpers ───────────────────────────────────────────────────
 
+// Retourne le label de garde pour un offset (depuis ligne 2 du sheet, ou calcul rotatif en fallback)
 function getEquipe(offset) {
+  if (state.gardes[offset]) return state.gardes[offset];
+  // Fallback : rotation E1/E2/E3/E4
   const startIdx = EQUIPE_SEQ.indexOf(CONFIG.EQUIPE_START);
   return EQUIPE_SEQ[(startIdx + offset) % 4];
+}
+
+// Classe CSS pour le badge équipe/garde (basée sur le texte)
+function equipeClass(label) {
+  if (!label) return "eq-E1";
+  const l = label.toLowerCase();
+  if (l.includes("1")) return "eq-E1";
+  if (l.includes("2")) return "eq-E2";
+  if (l.includes("3")) return "eq-E3";
+  if (l.includes("4")) return "eq-E4";
+  return "eq-E1";
+}
+
+// Classe CSS pour le badge d'affectation selon le type
+// GRR* = bleu | AST* / GIFF = orange | VPF = vert | Cond. CDG = rouge
+function affectClass(affect) {
+  if (!affect) return "";
+  const a = affect.toUpperCase();
+  if (a.startsWith("GRR"))                       return "af-grr";
+  if (a.startsWith("AST") || a.startsWith("GIFF")) return "af-ast";
+  if (a.startsWith("VPF"))                       return "af-vpf";
+  if (a.includes("COND") || a.includes("CDG"))   return "af-cond";
+  return "af-other";
 }
 
 function offsetToDate(offset) {

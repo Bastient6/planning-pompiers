@@ -190,7 +190,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* Affect button */
 .btn-affect { font-size: 11px; padding: 4px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: #f5f5f5; white-space: nowrap; transition: all 0.15s; }
 .btn-affect:hover { background: var(--purple-light); border-color: var(--purple-border); color: var(--purple); }
-.btn-done { font-size: 11px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--green-light); color: var(--green-dark); font-weight: 600; }
+.btn-done { font-size: 11px; padding: 4px 10px; border-radius: var(--radius-sm); font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+.btn-done:hover { opacity: 0.75; }
+
+/* Couleurs par type d'affectation */
+/* GRR = bleu */
+.af-grr  { background: var(--blue-light);   color: var(--blue-dark); }
+/* AST + GIFF = orange */
+.af-ast  { background: var(--amber-light);  color: var(--amber-dark); }
+/* GIFF = rose */
+.af-ast  { background: var(--pink-light);  color: var(--pink-dark); }
+/* VPF = vert */
+.af-vpf  { background: var(--green-light);  color: var(--green-dark); }
+/* Cond. CDG = rouge */
+.af-cond { background: var(--coral-light);  color: var(--coral-dark); }
+/* Autre = gris */
+.af-other { background: #f0f0f0; color: #555; }
+
+/* cell-af dans la vue Semaine hérite aussi des couleurs */
+.cell-af { font-weight: 600; border-radius: 3px; padding: 1px 4px; }
 
 /* Day nav */
 .day-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -223,7 +241,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .cell-j { background: var(--green-light); color: var(--green-dark); border-radius: 3px; padding: 1px 4px; }
 .cell-m { background: var(--blue-light); color: var(--blue-dark); border-radius: 3px; padding: 1px 4px; }
 .cell-am { background: var(--amber-light); color: var(--amber-dark); border-radius: 3px; padding: 1px 4px; }
-.cell-af { color: var(--purple); font-weight: 600; }
 
 /* Dispo form */
 .dispo-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
@@ -291,6 +308,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   --coral-dark:   #e07a60;
   --blue-light:   #0a1a2e;
   --blue-dark:    #5baae8;
+  --pink-light:   #CC1212;
+  --pink-dark:    #8A1919;
 }
 :root.dark .week-table th { background: #23273a; }
 :root.dark .type-btn { background: #23273a; color: var(--text); }
