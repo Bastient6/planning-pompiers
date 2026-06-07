@@ -235,9 +235,11 @@ function agentRow(a, maxRate, dayOffset) {
   return `<div class="agent-row">
     <div class="agent-name">
       <span>${a.name}</span>
-      ${a.soff ? `<span class="badge-sm soff">S/off</span>` : ""}
-      ${a.cond ? `<span class="badge-sm cond">Cond.</span>` : ""}
-      <span style="font-size:11px;color:var(--text-muted)">${dispoLabel}</span>
+      <span class="agent-qualifs">
+        ${a.soff ? `<span class="badge-sm soff">S/off</span>` : ""}
+        ${a.cond ? `<span class="badge-sm cond">Cond.</span>` : ""}
+      </span>
+      <span class="agent-dispo-label">${dispoLabel}</span>
     </div>
     <div class="eq-bar-wrap">
       <div class="eq-bar"><div class="eq-fill ${fillClass}" style="width:${fillW}%"></div></div>
@@ -275,7 +277,15 @@ function renderSemaine(el) {
     }).join("")}
   </tr>`;
 
-  const tbody = state.agents.map(a => {
+  // Garder uniquement les agents ayant au moins une dispo ou affectation sur la semaine
+  const activeAgents = state.agents.filter(a =>
+    days.some(({ offset }) => {
+      const cell = (state.cells[offset] || {})[a.idx];
+      return cell && (cell.dispo || cell.affect);
+    })
+  );
+
+  const tbody = activeAgents.map(a => {
     const badges = (a.soff ? `<span class="badge-sm soff">S/off</span>` : "") +
                    (a.cond ? `<span class="badge-sm cond">Cond.</span>` : "");
     const cells = days.map(({ offset }) => {
@@ -294,9 +304,12 @@ function renderSemaine(el) {
       <span class="week-picker-label">${weekRangeLabel(wStart)}</span>
       <button onclick="shiftSemaine(7)" ${!canNext ? "disabled" : ""}>›</button>
     </div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <div class="week-scroll"><table class="week-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
-    </div>`;
+    ${activeAgents.length === 0
+      ? `<div class="card"><div style="text-align:center;padding:24px;color:var(--text-muted)">Aucune disponibilité saisie cette semaine</div></div>`
+      : `<div class="card" style="padding:0;overflow:hidden">
+          <div class="week-scroll"><table class="week-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
+        </div>`
+    }`;
 }
 
 function shiftSemaine(delta) {
