@@ -258,7 +258,7 @@ function agentRow(a, maxRate, dayOffset) {
 
 function renderSemaine(el) {
   const wStart   = state.weekOffset;
-  const canPrev  = wStart - 7 >= 0;
+  const canPrev  = wStart > 0;
   const canNext  = wStart + 7 <= MAX_OFFSET;
 
   const days = [];
@@ -291,9 +291,10 @@ function renderSemaine(el) {
     const cells = days.map(({ offset }) => {
       const cell = (state.cells[offset] || {})[a.idx];
       if (!cell || !cell.dispo) return `<td>—</td>`;
-      if (cell.affect) return `<td><span class="cell-af ${affectClass(cell.affect)}">${cell.affect.split(" ")[0]}</span></td>`;
+      if (cell.affect) return `<td><span class="cell-af ${affectClass(cell.affect)}">${cell.affect}</span></td>`;
+      const dispoFull = { J: "Journée", M: "Matin", AM: "Après-midi" }[cell.dispo] || cell.dispo;
       const cls = { J: "cell-j", M: "cell-m", AM: "cell-am" }[cell.dispo] || "";
-      return `<td><span class="${cls}">${cell.dispo}</span></td>`;
+      return `<td><span class="${cls}">${dispoFull}</span></td>`;
     }).join("");
     return `<tr><td>${a.name} ${badges}</td>${cells}</tr>`;
   }).join("");
@@ -438,19 +439,51 @@ async function updateDispo(offset, agentIdx, value) {
 
 // ── Modal affectation ─────────────────────────────────────────
 
-function openModal(agentIdx, name, dispo, dayOffset) {
+function openModal(agentIdx, name, dispo, dayOffset, currentAffect) {
   state.modalAgent = { agentIdx, name, dispo, dayOffset };
   state.modalType  = null;
   const s = state.stats[agentIdx] || { gardes: 0, dispos: 0, rate: 0 };
 
-  document.getElementById("m-title").textContent = "Affecter " + name;
+  document.getElementById("m-title").textContent = currentAffect ? "Modifier affectation" : "Affecter " + name;
   document.getElementById("m-sub").textContent =
     `Dispo : ${{ J: "Journée", M: "Matin", AM: "Après-midi" }[dispo] || dispo} — taux : ${Math.round(s.rate * 100)}%`;
   document.getElementById("m-types").innerHTML = TYPES_GARDE.map(t =>
-    `<button class="type-btn" onclick="selectType(this,'${t}')">${t}</button>`
+    `<button class="type-btn ${currentAffect === t ? "sel" : ""}" onclick="selectType(this,'${t}')">${t}</button>`
   ).join("");
-  document.getElementById("m-confirm").disabled = true;
+
+  // Bouton supprimer (visible seulement si une affectation existe déjà)
+  const delBtn = document.getElementById("m-delete");
+  if (delBtn) {
+    if (currentAffect) {
+      delBtn.style.display = "";
+      delBtn.onclick = () => deleteAffect();
+    } else {
+      delBtn.style.display = "none";
+    }
+  }
+
+  if (currentAffect) {
+    state.modalType = currentAffect;
+    document.getElementById("m-confirm").disabled = false;
+  } else {
+    document.getElementById("m-confirm").disabled = true;
+  }
   document.getElementById("modal").classList.add("open");
+}
+
+async function deleteAffect() {
+  const { agentIdx, dayOffset } = state.modalAgent;
+  const cell = (state.cells[dayOffset] || {})[agentIdx];
+  if (!cell) { closeModal(); return; }
+  try {
+    await saveAffectCell(cell.sheetRow, cell.affectCol, "");
+    cell.affect = "";
+    computeStats();
+    renderCurrentTab();
+    closeModal();
+  } catch (e) {
+    showError("Erreur suppression : " + e.message);
+  }
 }
 
 function selectType(btn, type) {
@@ -587,10 +620,11 @@ function capitalize(s) {
 }
 
 // Retourne l'offset du lundi de la semaine contenant `offset`
+// Clampé à 0 pour ne pas dépasser le début de la saison
 function weekStart(offset) {
   const d = offsetToDate(offset);
   const dow = (d.getDay() + 6) % 7; // lundi = 0
-  return offset - dow;
+  return Math.max(0, offset - dow);
 }
 
 function weekRangeLabel(wStart) {

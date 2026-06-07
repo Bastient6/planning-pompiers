@@ -318,6 +318,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 :root.dark .btn-google { background: #1a1d27; color: var(--text); }
 :root.dark .btn-google:hover { background: #23273a; }
 :root.dark .dispo-select { background: #23273a; color: var(--text); }
+.btn-delete { width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid #fcc; background: #fff5f5; color: var(--red); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+.btn-delete:hover { background: #ffe0e0; }
+:root.dark .btn-delete { background: #2a1212; border-color: #7a2020; color: #e07070; }
+:root.dark .btn-delete:hover { background: #3a1818; }
 :root.dark .auth-card { background: #1a1d27; }
 </style>
 </head>
@@ -404,6 +408,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="modal-sub" id="m-sub"></div>
     <div class="type-grid" id="m-types"></div>
     <button class="btn-confirm" id="m-confirm" onclick="confirmAffect()" disabled>Confirmer</button>
+    <button class="btn-delete" id="m-delete" style="display:none">🗑 Supprimer l'affectation</button>
     <button class="btn-cancel" onclick="closeModal()">Annuler</button>
   </div>
 </div>
