@@ -174,7 +174,7 @@ function renderPlanning(el) {
   const maxRate = Math.max(...state.agents.map(a => (state.stats[a.idx] || {}).rate || 0), 0.01);
 
   // Sélecteur semaine pour le planning
-  const canPrevWeek = wStart - 7 >= 0;
+  const canPrevWeek = wStart > 0;
   const canNextWeek = wStart + 7 <= MAX_OFFSET;
 
   el.innerHTML = `
@@ -215,7 +215,8 @@ function renderPlanning(el) {
 function shiftPlanningWeek(delta) {
   const wStart = weekStart(state.dayOffset);
   const newW   = Math.max(0, Math.min(MAX_OFFSET, wStart + delta));
-  state.dayOffset = newW;
+  state.dayOffset  = newW;
+  state.weekOffset = newW;   // garder les deux vues synchronisées
   renderCurrentTab();
 }
 

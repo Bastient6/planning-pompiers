@@ -24,10 +24,7 @@ async function sheetsGetMultiple(ranges) {
 // ── Écriture ─────────────────────────────────────────────────
 
 async function sheetsUpdate(range, values) {
-  if (!accessToken) {
-    tokenClient.requestAccessToken({ prompt: "" });
-    await new Promise(res => setTimeout(res, 1500));
-  }
+  await ensureAccessToken();
   const url = `${SHEETS_BASE}/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
   const r = await fetch(url, {
     method: "PUT",
@@ -45,10 +42,7 @@ async function sheetsUpdate(range, values) {
 }
 
 async function sheetsBatchUpdate(data) {
-  if (!accessToken) {
-    tokenClient.requestAccessToken({ prompt: "" });
-    await new Promise(res => setTimeout(res, 1500));
-  }
+  await ensureAccessToken();
   const url = `${SHEETS_BASE}/${CONFIG.SHEET_ID}/values:batchUpdate`;
   const r = await fetch(url, {
     method: "POST",
