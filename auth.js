@@ -28,13 +28,16 @@ function initGoogle() {
     showApp();
   }
 
-  // Rendu du bouton Google natif — fonctionne partout (Safari, Firefox, Chrome)
-  google.accounts.id.renderButton(
-    document.getElementById("btn-signin"),
-    { type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "fr", width: 280 }
-  );
+  // Injecter le bouton Google officiel (renderButton) après que le DOM soit prêt
+  // setTimeout 0 garantit que la div est dimensionnée avant l'injection
+  setTimeout(() => {
+    google.accounts.id.renderButton(
+      document.getElementById("btn-signin"),
+      { type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "fr", width: 280 }
+    );
+  }, 0);
 
-  // One Tap : tentative silencieuse, ignorée si Safari/ITP la bloque
+  // One Tap silencieux en bonus (ignoré si Safari ITP le bloque)
   google.accounts.id.prompt();
 }
 
