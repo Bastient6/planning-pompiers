@@ -1237,3 +1237,61 @@ select { font-family: inherit; }
   color: var(--text-3);
   font-size: 13px;
 }
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;   /* empêche la carte d’être trop large */
+  padding: 32px 24px;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 20px;
+}
+
+
+.auth-emblem img {
+  width: 100%;
+  max-width: 140px;  /* clé ici */
+  height: auto;
+  object-fit: contain;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 20px;
+}
+
+.auth-sub {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.topbar-logo {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.topbar-logo img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}

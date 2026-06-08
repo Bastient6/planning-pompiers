@@ -17,9 +17,7 @@ export function Topbar({ user, darkMode, onToggleDark, onSignOut }: Props) {
     <header className="topbar">
       <div className="topbar-brand">
         <div className="topbar-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M12 2L2 7v8c0 5 4 9.27 10 11 6-1.73 10-6 10-11V7L12 2z"/>
-          </svg>
+          <img src="/Logo-SP-Mireval 1.jpg" alt="Logo" />
         </div>
         <span className="topbar-title">Planning 2026</span>
       </div>
