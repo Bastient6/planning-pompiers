@@ -1,13 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { loadAgents, loadSaisonData, parseSaisonData, saveCellValue } from '../lib/sheets';
-import { daysBetween, SAISON_START, todayOffset } from '../lib/dateUtils';
+import { todayOffset } from '../lib/dateUtils';
 import type { Agent, CellMap, GardeMap, AgentStats } from '../lib/types';
 
 export interface AppData {
-  agents:  Agent[];
-  cells:   CellMap;
-  gardes:  GardeMap;
-  stats:   Record<number, AgentStats>;
+  agents: Agent[];
+  cells:  CellMap;
+  gardes: GardeMap;
+  stats:  Record<number, AgentStats>;
 }
 
 function computeStats(agents: Agent[], cells: CellMap): Record<number, AgentStats> {
@@ -32,28 +32,40 @@ export function useAppData() {
   const [error, setError]     = useState<string | null>(null);
   const [saving, setSaving]   = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const dataRef = useRef<AppData | null>(null);
+  dataRef.current = data;
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const refresh = useCallback(async (silent = false) => {
+    if (!silent) { setLoading(true); setError(null); }
     try {
       const agents = await loadAgents();
       const rows   = await loadSaisonData();
       const { cells, gardes } = parseSaisonData(rows, agents);
       const stats  = computeStats(agents, cells);
-      setData({ agents, cells, gardes, stats });
+      const next   = { agents, cells, gardes, stats };
+      setData(prev => {
+        // Pas de re-render si les cellules n'ont pas changé
+        if (prev && JSON.stringify(prev.cells) === JSON.stringify(next.cells)) return prev;
+        return next;
+      });
     } catch (e: any) {
-      setError(e.message || 'Erreur de chargement');
+      if (!silent) setError(e.message || 'Erreur de chargement');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
+  // Polling silencieux toutes les 2 minutes
+  useEffect(() => {
+    const id = setInterval(() => refresh(true), 2 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
   const updateDispo = useCallback(async (offset: number, agentIdx: number, value: string) => {
-    if (!data) return;
-    const cell = data.cells[offset]?.[agentIdx];
+    if (!dataRef.current) return;
+    const cell = dataRef.current.cells[offset]?.[agentIdx];
     if (!cell) {
-      setSaveError('Cellule introuvable pour ce jour. Vérifie que la feuille est bien formatée.');
+      setSaveError('Cellule introuvable pour ce jour.');
       return;
     }
     setSaving(true);
@@ -70,13 +82,13 @@ export function useAppData() {
     } finally {
       setSaving(false);
     }
-  }, [data]);
+  }, []);
 
   const updateAffect = useCallback(async (offset: number, agentIdx: number, value: string) => {
-    if (!data) return;
-    const cell = data.cells[offset]?.[agentIdx];
+    if (!dataRef.current) return;
+    const cell = dataRef.current.cells[offset]?.[agentIdx];
     if (!cell) {
-      setSaveError('Cellule introuvable pour ce jour. Vérifie que la feuille est bien formatée.');
+      setSaveError('Cellule introuvable pour ce jour.');
       return;
     }
     setSaving(true);
@@ -93,7 +105,7 @@ export function useAppData() {
     } finally {
       setSaving(false);
     }
-  }, [data]);
+  }, []);
 
   return { data, loading, error, saving, saveError, refresh, updateDispo, updateAffect };
 }
