@@ -15,9 +15,7 @@ const TOKEN_KEY = 'gapi_token';
 const TOKEN_EXPIRY_KEY = 'gapi_token_expiry';
 
 export function requestOAuthToken() {
-  // Sauvegarde l'URL courante pour y revenir après auth
   sessionStorage.setItem('oauth_return', window.location.href);
-
   const params = new URLSearchParams({
     client_id:     CONFIG.GOOGLE_CLIENT_ID,
     redirect_uri:  window.location.origin + window.location.pathname,
@@ -25,7 +23,10 @@ export function requestOAuthToken() {
     scope:         'https://www.googleapis.com/auth/spreadsheets',
     include_granted_scopes: 'true',
   });
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  console.log('[oauth] redirect_uri:', window.location.origin + window.location.pathname);
+  console.log('[oauth] full url:', url);
+  window.location.href = url;
 }
 
 function loadTokenFromStorage(): boolean {
