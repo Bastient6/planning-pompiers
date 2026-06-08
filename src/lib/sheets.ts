@@ -4,13 +4,9 @@ import type { Agent, CellMap, GardeMap } from './types';
 
 const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
-// ── Token state ────────────────────────────────────────────
 let _accessToken = '';
 let _tokenExpiry  = 0;
 let _tokenClient: any = null;
-
-let _pendingResolve: (() => void) | null = null;
-let _pendingReject: ((e: Error) => void) | null = null;
 
 export function setTokenClient(tc: any) { _tokenClient = tc; }
 
@@ -22,32 +18,22 @@ export function setAccessToken(token: string, expiresIn = 3400) {
 export function clearAccessToken() { _accessToken = ''; _tokenExpiry = 0; }
 export function hasAccessToken()   { return !!_accessToken && Date.now() < _tokenExpiry; }
 
-// Appelé par useAuth depuis le callback du tokenClient (seul endroit valide)
+// En mode redirect, ce callback n'est pas appelé — le token vient du hash URL.
+// Gardé pour compatibilité au cas où.
 export function onTokenResponse(resp: any) {
-  if (!resp.error) {
-    setAccessToken(resp.access_token);
-    _pendingResolve?.();
-  } else {
-    _pendingReject?.(new Error('Erreur auth Google : ' + resp.error));
-  }
-  _pendingResolve = null;
-  _pendingReject  = null;
+  if (!resp.error) setAccessToken(resp.access_token);
 }
 
 export async function ensureAccessToken(): Promise<void> {
   if (hasAccessToken()) return;
   if (!_tokenClient) throw new Error('Token client non initialisé');
-
-  return new Promise((resolve, reject) => {
-    _pendingResolve = resolve;
-    _pendingReject  = reject;
-    // Pas de prompt:'none' — ça ouvre une popup bloquée par le navigateur.
-    // Sans prompt, Google réutilise la session existante si possible, sinon affiche le sélecteur.
-    _tokenClient.requestAccessToken();
-  });
+  // En mode redirect, requestAccessToken redirige vers Google puis revient sur la page.
+  // Le token sera extrait du hash URL au prochain chargement par useAuth.
+  _tokenClient.requestAccessToken();
+  // La Promise ne se résout pas — la page va être redirigée.
+  return new Promise(() => {});
 }
 
-// ── Read ───────────────────────────────────────────────────
 async function sheetsGet(range: string): Promise<string[][]> {
   const url = `${BASE}/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?key=${CONFIG.API_KEY}`;
   const r = await fetch(url);
@@ -56,7 +42,6 @@ async function sheetsGet(range: string): Promise<string[][]> {
   return d.values || [];
 }
 
-// ── Write ──────────────────────────────────────────────────
 export async function sheetsUpdate(range: string, values: string[][]): Promise<void> {
   await ensureAccessToken();
   const url = `${BASE}/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
@@ -74,7 +59,6 @@ export async function sheetsUpdate(range: string, values: string[][]): Promise<v
   }
 }
 
-// ── Agents ─────────────────────────────────────────────────
 let _agentsCache: Agent[] | null = null;
 
 export async function loadAgents(): Promise<Agent[]> {
@@ -98,7 +82,6 @@ export async function findAgent(email: string): Promise<Agent | null> {
   return agents.find(a => a.email === email.toLowerCase()) ?? null;
 }
 
-// ── Season data ────────────────────────────────────────────
 export async function loadSaisonData(): Promise<string[][]> {
   return sheetsGet(CONFIG.SHEETS.SAISON + '!A1:ZZ200');
 }
@@ -113,7 +96,6 @@ export function parseSaisonData(
 
   const headerRow = rows[0] || [];
   const gardeRow  = rows[1] || [];
-
   const dayColMap: Record<number, { dispoCol: number; affectCol: number }> = {};
 
   for (let c = 1; c < headerRow.length; c += 2) {
