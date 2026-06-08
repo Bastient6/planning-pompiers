@@ -69,7 +69,7 @@ export function DisposTab({ data, user, onUpdateDispo }: Props) {
               <select
                 className="dispo-select"
                 value={dispo}
-                onChange={e => onUpdateDispo(offset, agent.idx, e.target.value)}
+                onChange={e => { console.log("[dispo] onChange offset:", offset, "agentIdx:", agent.idx, "value:", e.target.value, "cell:", JSON.stringify(cells[offset]?.[agent.idx])); onUpdateDispo(offset, agent.idx, e.target.value); }}
               >
                 <option value="">Indispo</option>
                 <option value="J">Journée</option>
