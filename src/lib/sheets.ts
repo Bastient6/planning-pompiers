@@ -21,7 +21,7 @@ export async function ensureAccessToken(): Promise<void> {
   if (hasAccessToken()) return;
   if (!_tokenClient) throw new Error('Token client non initialisé');
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tryToken = (promptMode: string) => {
       _tokenClient.callback = (resp: any) => {
         if (!resp.error) {
@@ -30,7 +30,7 @@ export async function ensureAccessToken(): Promise<void> {
         } else if (promptMode === 'none') {
           tryToken('consent');
         } else {
-          resolve(); // continue sans token — ensureAccessToken sera rappelé
+          reject(new Error('Authentification Google refusée. Veuillez vous reconnecter.'));
         }
       };
       _tokenClient.requestAccessToken({ prompt: promptMode });

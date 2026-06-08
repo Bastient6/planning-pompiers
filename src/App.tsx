@@ -13,7 +13,7 @@ import type { Tab } from './lib/types';
 
 export default function App() {
   const { user, loading: authLoading, authReady, signOut } = useAuth();
-  const { data, loading: dataLoading, error, saving, refresh, updateDispo, updateAffect } = useAppData();
+  const { data, loading: dataLoading, error, saving, saveError, refresh, updateDispo, updateAffect } = useAppData();
   const [tab, setTab]           = useState<Tab>('semaine');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === '1');
 
@@ -59,6 +59,7 @@ export default function App() {
 
         <main className="main-content">
           {error && <ErrorBanner message={error} />}
+          {saveError && <ErrorBanner message={saveError} />}
 
           {dataLoading ? (
             <div className="loading-state">

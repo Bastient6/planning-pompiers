@@ -31,6 +31,7 @@ export function useAppData() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [saving, setSaving]   = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -51,8 +52,12 @@ export function useAppData() {
   const updateDispo = useCallback(async (offset: number, agentIdx: number, value: string) => {
     if (!data) return;
     const cell = data.cells[offset]?.[agentIdx];
-    if (!cell) return;
+    if (!cell) {
+      setSaveError('Cellule introuvable pour ce jour. Vérifie que la feuille est bien formatée.');
+      return;
+    }
     setSaving(true);
+    setSaveError(null);
     try {
       await saveCellValue(cell.sheetRow, cell.dispoCol, value);
       setData(prev => {
@@ -60,6 +65,8 @@ export function useAppData() {
         const newCells = { ...prev.cells, [offset]: { ...prev.cells[offset], [agentIdx]: { ...cell, dispo: value } } };
         return { ...prev, cells: newCells, stats: computeStats(prev.agents, newCells) };
       });
+    } catch (e: any) {
+      setSaveError(e.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -68,8 +75,12 @@ export function useAppData() {
   const updateAffect = useCallback(async (offset: number, agentIdx: number, value: string) => {
     if (!data) return;
     const cell = data.cells[offset]?.[agentIdx];
-    if (!cell) return;
+    if (!cell) {
+      setSaveError('Cellule introuvable pour ce jour. Vérifie que la feuille est bien formatée.');
+      return;
+    }
     setSaving(true);
+    setSaveError(null);
     try {
       await saveCellValue(cell.sheetRow, cell.affectCol, value);
       setData(prev => {
@@ -77,10 +88,12 @@ export function useAppData() {
         const newCells = { ...prev.cells, [offset]: { ...prev.cells[offset], [agentIdx]: { ...cell, affect: value } } };
         return { ...prev, cells: newCells, stats: computeStats(prev.agents, newCells) };
       });
+    } catch (e: any) {
+      setSaveError(e.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
   }, [data]);
 
-  return { data, loading, error, saving, refresh, updateDispo, updateAffect };
+  return { data, loading, error, saving, saveError, refresh, updateDispo, updateAffect };
 }
