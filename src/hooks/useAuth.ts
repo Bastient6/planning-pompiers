@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CONFIG } from '../lib/config';
-import { findAgent, setTokenClient, setAccessToken, clearAccessToken } from '../lib/sheets';
+import { findAgent, setTokenClient, setAccessToken, clearAccessToken, onTokenResponse } from '../lib/sheets';
 import type { CurrentUser } from '../lib/types';
 
 declare const google: any;
@@ -11,8 +11,8 @@ function parseJwt(token: string) {
 }
 
 export function useAuth() {
-  const [user, setUser]         = useState<CurrentUser | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [user, setUser]           = useState<CurrentUser | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [authReady, setAuthReady] = useState(false);
 
   const signOut = useCallback(() => {
@@ -50,10 +50,13 @@ export function useAuth() {
     script.src   = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.onload = () => {
+      // Le callback est défini ICI — c'est la seule façon fiable avec la GIS API.
+      // onTokenResponse est le point d'entrée unique qui résout/rejette la Promise
+      // en attente dans ensureAccessToken.
       const tc = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope:     'https://www.googleapis.com/auth/spreadsheets',
-        callback:  () => {}, // géré dynamiquement par ensureAccessToken
+        callback:  onTokenResponse,
       });
       setTokenClient(tc);
 
@@ -63,25 +66,19 @@ export function useAuth() {
         auto_select: false,
       });
 
-      // Restore session
+      // Restore session + silent token refresh
       const saved = sessionStorage.getItem('user');
       if (saved) {
         const u = JSON.parse(saved) as CurrentUser;
         setUser(u);
-        // Silent token refresh au démarrage
-        try {
-          tc.callback = (resp: any) => {
-            if (!resp.error) setAccessToken(resp.access_token);
-            // En cas d'échec silencieux, ensureAccessToken s'en chargera au prochain write
-          };
-          tc.requestAccessToken({ prompt: 'none' });
-        } catch (_) {}
+        // Refresh silencieux — onTokenResponse mettra à jour le token si OK,
+        // et ne fera rien de bloquant si refusé (ensureAccessToken gérera la popup au prochain write)
+        tc.requestAccessToken({ prompt: '' });
       }
 
       setAuthReady(true);
       setLoading(false);
 
-      // Render the official Google button
       setTimeout(() => {
         const btnEl = document.getElementById('google-signin-btn');
         if (btnEl) {
