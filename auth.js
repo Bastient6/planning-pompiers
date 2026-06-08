@@ -148,7 +148,7 @@ function showApp() {
 
   // Afficher/masquer les onglets réservés aux admins
   document.querySelectorAll(".admin-only").forEach(el => {
-    el.style.display = currentUser.isAdmin ? "" : "none";
+    el.style.display = currentUser.isAdmin ? "flex" : "none";
   });
 
   // Non-admin : démarrer sur Semaine (planning et équité inaccessibles)
