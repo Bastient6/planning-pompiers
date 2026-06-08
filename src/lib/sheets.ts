@@ -25,6 +25,7 @@ export function hasAccessToken() { return !!_accessToken && Date.now() < _tokenE
 
 // Appelé par useAuth depuis le callback du tokenClient
 export function onTokenResponse(resp: any) {
+  console.log('[token] onTokenResponse:', JSON.stringify(resp));
   if (!resp.error) {
     setAccessToken(resp.access_token);
     _pendingResolve?.();
@@ -36,14 +37,14 @@ export function onTokenResponse(resp: any) {
 }
 
 export async function ensureAccessToken(): Promise<void> {
+  console.log('[token] hasToken:', hasAccessToken(), 'client:', !!_tokenClient);
   if (hasAccessToken()) return;
   if (!_tokenClient) throw new Error('Token client non initialisé');
 
   return new Promise((resolve, reject) => {
     _pendingResolve = resolve;
     _pendingReject = reject;
-    // Essai silencieux d'abord — si refus, Google appellera onTokenResponse avec une erreur
-    // et useAuth devra rappeler avec prompt:'consent'
+    console.log('[token] requestAccessToken avec prompt:""');
     _tokenClient.requestAccessToken({ prompt: '' });
   });
 }
