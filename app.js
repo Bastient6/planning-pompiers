@@ -133,6 +133,8 @@ function computeStats() {
 // ── Navigation globale ────────────────────────────────────────
 
 function showTab(tab, btn) {
+  // Bloquer l'accès aux onglets admin pour les non-admins
+  if ((tab === "planning" || tab === "equite") && currentUser && !currentUser.isAdmin) return;
   state.tab = tab;
   document.querySelectorAll(".nav-btn").forEach(b => {
     b.classList.remove("active");

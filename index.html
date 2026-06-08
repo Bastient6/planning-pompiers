@@ -69,6 +69,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: none; background: none; cursor: pointer; color: var(--text-muted); font-size: 10px; font-weight: 500; transition: color 0.15s; }
 .nav-btn svg { width: 22px; height: 22px; }
 .nav-btn.active { color: var(--purple); }
+.nav-btn.admin-only { display: none; } /* masqué par défaut, affiché si admin via JS */
 
 /* ── Desktop layout (≥ 768px) ─────────────────────── */
 @media (min-width: 768px) {
@@ -349,7 +350,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <!-- Sidebar desktop -->
     <nav class="sidebar">
       <div class="sidebar-label">Navigation</div>
-      <button class="nav-btn active" onclick="showTab('planning', this)">
+      <button class="nav-btn admin-only active" onclick="showTab('planning', this)">
         <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         Planning
       </button>
@@ -357,7 +358,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Semaine
       </button>
-      <button class="nav-btn" onclick="showTab('equite', this)">
+      <button class="nav-btn admin-only" onclick="showTab('equite', this)">
         <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
         Équité
       </button>
@@ -374,7 +375,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <!-- Bottom nav mobile -->
   <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="showTab('planning', this)">
+    <button class="nav-btn admin-only active" onclick="showTab('planning', this)">
       <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       Planning
     </button>
@@ -382,7 +383,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Semaine
     </button>
-    <button class="nav-btn" onclick="showTab('equite', this)">
+    <button class="nav-btn admin-only" onclick="showTab('equite', this)">
       <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
       Équité
     </button>

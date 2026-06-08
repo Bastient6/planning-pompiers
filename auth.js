@@ -143,6 +143,19 @@ function showApp() {
   document.getElementById("user-name-short").textContent =
     currentUser.agentName || currentUser.name.split(" ")[0];
 
+  // Afficher/masquer les onglets réservés aux admins
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = currentUser.isAdmin ? "" : "none";
+  });
+
+  // Non-admin : démarrer sur Semaine (planning et équité inaccessibles)
+  if (!currentUser.isAdmin) {
+    state.tab = "semaine";
+    document.querySelectorAll(".nav-btn").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("onclick") === "showTab('semaine', this)");
+    });
+  }
+
   initApp();
 }
 
