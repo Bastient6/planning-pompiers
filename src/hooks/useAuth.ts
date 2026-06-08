@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CONFIG } from '../lib/config';
-import { findAgent, setTokenClient, setAccessToken, clearAccessToken, onTokenResponse } from '../lib/sheets';
+import { findAgent, setAccessToken, clearAccessToken } from '../lib/sheets';
 import type { CurrentUser } from '../lib/types';
 
 declare const google: any;
@@ -10,19 +10,50 @@ function parseJwt(token: string) {
   return JSON.parse(atob(base64));
 }
 
-// Récupère le token depuis le fragment URL après redirect OAuth
-function extractTokenFromHash(): string | null {
+// Clé sessionStorage pour le token OAuth
+const TOKEN_KEY = 'gapi_token';
+const TOKEN_EXPIRY_KEY = 'gapi_token_expiry';
+
+export function requestOAuthToken() {
+  // Sauvegarde l'URL courante pour y revenir après auth
+  sessionStorage.setItem('oauth_return', window.location.href);
+
+  const params = new URLSearchParams({
+    client_id:     CONFIG.GOOGLE_CLIENT_ID,
+    redirect_uri:  window.location.origin + window.location.pathname,
+    response_type: 'token',
+    scope:         'https://www.googleapis.com/auth/spreadsheets',
+    include_granted_scopes: 'true',
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+function loadTokenFromStorage(): boolean {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const expiry = parseInt(sessionStorage.getItem(TOKEN_EXPIRY_KEY) || '0', 10);
+  if (token && Date.now() < expiry) {
+    setAccessToken(token, Math.floor((expiry - Date.now()) / 1000));
+    return true;
+  }
+  return false;
+}
+
+function extractTokenFromHash(): boolean {
   const hash = window.location.hash;
-  if (!hash) return null;
+  if (!hash) return false;
   const params = new URLSearchParams(hash.slice(1));
   const token = params.get('access_token');
   const expiresIn = parseInt(params.get('expires_in') || '3400', 10);
-  if (token) {
-    setAccessToken(token, expiresIn);
-    // Nettoie le hash de l'URL sans recharger la page
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
-  }
-  return token;
+  if (!token) return false;
+
+  const expiry = Date.now() + expiresIn * 1000;
+  sessionStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry));
+  setAccessToken(token, expiresIn);
+
+  // Nettoie le hash sans recharger
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  return true;
 }
 
 export function useAuth() {
@@ -31,8 +62,10 @@ export function useAuth() {
   const [authReady, setAuthReady] = useState(false);
 
   const signOut = useCallback(() => {
-    google.accounts.id.disableAutoSelect();
+    try { google.accounts.id.disableAutoSelect(); } catch (_) {}
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
     clearAccessToken();
     setUser(null);
   }, []);
@@ -44,7 +77,6 @@ export function useAuth() {
       alert('Accès refusé : ' + payload.email + " n'est pas dans la liste des agents.");
       return;
     }
-
     const newUser: CurrentUser = {
       email:     payload.email,
       name:      payload.name,
@@ -55,29 +87,20 @@ export function useAuth() {
       isCond:    agentData.cond,
       isAdmin:   agentData.admin,
     };
-
     sessionStorage.setItem('user', JSON.stringify(newUser));
     setUser(newUser);
   }, []);
 
   useEffect(() => {
-    // Récupère le token si on revient d'un redirect OAuth
+    // 1. Récupère le token depuis le hash si on revient d'un redirect OAuth
     extractTokenFromHash();
+    // 2. Sinon charge depuis sessionStorage
+    loadTokenFromStorage();
 
     const script = document.createElement('script');
     script.src   = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.onload = () => {
-      const tc = google.accounts.oauth2.initTokenClient({
-        client_id:    CONFIG.GOOGLE_CLIENT_ID,
-        scope:        'https://www.googleapis.com/auth/spreadsheets',
-        callback:     onTokenResponse,
-        // redirect_uri pour GitHub Pages — pas de popup, pas de postMessage bloqué
-        ux_mode:      'redirect',
-        redirect_uri: window.location.origin + window.location.pathname,
-      });
-      setTokenClient(tc);
-
       google.accounts.id.initialize({
         client_id:   CONFIG.GOOGLE_CLIENT_ID,
         callback:    handleCredential,
@@ -85,9 +108,7 @@ export function useAuth() {
       });
 
       const saved = sessionStorage.getItem('user');
-      if (saved) {
-        setUser(JSON.parse(saved) as CurrentUser);
-      }
+      if (saved) setUser(JSON.parse(saved) as CurrentUser);
 
       setAuthReady(true);
       setLoading(false);

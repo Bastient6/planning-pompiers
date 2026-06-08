@@ -6,31 +6,21 @@ const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let _accessToken = '';
 let _tokenExpiry  = 0;
-let _tokenClient: any = null;
-
-export function setTokenClient(tc: any) { _tokenClient = tc; }
 
 export function setAccessToken(token: string, expiresIn = 3400) {
   _accessToken = token;
   _tokenExpiry  = Date.now() + expiresIn * 1000;
 }
-
 export function clearAccessToken() { _accessToken = ''; _tokenExpiry = 0; }
 export function hasAccessToken()   { return !!_accessToken && Date.now() < _tokenExpiry; }
 
-// En mode redirect, ce callback n'est pas appelé — le token vient du hash URL.
-// Gardé pour compatibilité au cas où.
-export function onTokenResponse(resp: any) {
-  if (!resp.error) setAccessToken(resp.access_token);
-}
-
+// Plus de tokenClient GIS — l'auth se fait via redirect manuel dans useAuth
 export async function ensureAccessToken(): Promise<void> {
   if (hasAccessToken()) return;
-  if (!_tokenClient) throw new Error('Token client non initialisé');
-  // En mode redirect, requestAccessToken redirige vers Google puis revient sur la page.
-  // Le token sera extrait du hash URL au prochain chargement par useAuth.
-  _tokenClient.requestAccessToken();
-  // La Promise ne se résout pas — la page va être redirigée.
+  // Importe dynamiquement pour éviter la dépendance circulaire
+  const { requestOAuthToken } = await import('../hooks/useAuth');
+  requestOAuthToken();
+  // La page va être redirigée — cette Promise ne se résout pas
   return new Promise(() => {});
 }
 
