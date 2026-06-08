@@ -28,26 +28,14 @@ function initGoogle() {
     showApp();
   }
 
-  document.getElementById("btn-signin").addEventListener("click", () => {
+  // Rendu du bouton Google natif — fonctionne partout (Safari, Firefox, Chrome)
+  google.accounts.id.renderButton(
+    document.getElementById("btn-signin"),
+    { type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "fr", width: 280 }
+  );
 
-    google.accounts.id.prompt((notification) => {
-
-      if (
-        notification.isNotDisplayed() ||
-        notification.isSkippedMoment()
-      ) {
-
-        google.accounts.oauth2.initCodeClient({
-          client_id: CONFIG.GOOGLE_CLIENT_ID,
-          scope: "openid email profile",
-          ux_mode: "popup",
-          callback: () => {}
-        }).requestCode();
-
-      }
-    });
-
-  });
+  // One Tap : tentative silencieuse, ignorée si Safari/ITP la bloque
+  google.accounts.id.prompt();
 }
 
 function onTokenResponse(resp) {
@@ -123,15 +111,23 @@ async function handleCredential(response) {
 
   sessionStorage.setItem("user", JSON.stringify(currentUser));
 
-  // Après connexion fraîche : le token est disponible immédiatement sans popup
+  // Demander le token Sheets après connexion
+  // 1er essai silencieux ; si le compte n'a pas encore accordé le scope → popup consent
   await new Promise((resolve) => {
-    const prev = tokenClient.callback;
-    tokenClient.callback = (resp) => {
-      tokenClient.callback = prev;
-      onTokenResponse(resp);
-      resolve();
+    const tryToken = (promptMode) => {
+      tokenClient.callback = (resp) => {
+        if (!resp.error) {
+          onTokenResponse(resp);
+          resolve();
+        } else if (promptMode === "none") {
+          tryToken("consent");   // silencieux échoué → popup
+        } else {
+          resolve();             // popup fermée → on continue, ensureAccessToken() retentera
+        }
+      };
+      tokenClient.requestAccessToken({ prompt: promptMode });
     };
-    tokenClient.requestAccessToken({ prompt: "none" });
+    tryToken("none");
   });
 
   showApp();
