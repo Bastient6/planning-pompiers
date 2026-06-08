@@ -17,5 +17,5 @@ export const CONFIG = {
   SAISON_END:    "2026-09-30",
   EQUIPE_START:  "E2",
 
-  APP_URL: "https://bastient6.github.io/planning",
+  APP_URL: "https://bastient6.github.io/planning-pompiers",
 };
