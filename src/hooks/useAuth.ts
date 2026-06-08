@@ -10,6 +10,21 @@ function parseJwt(token: string) {
   return JSON.parse(atob(base64));
 }
 
+// Récupère le token depuis le fragment URL après redirect OAuth
+function extractTokenFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash) return null;
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get('access_token');
+  const expiresIn = parseInt(params.get('expires_in') || '3400', 10);
+  if (token) {
+    setAccessToken(token, expiresIn);
+    // Nettoie le hash de l'URL sans recharger la page
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+  return token;
+}
+
 export function useAuth() {
   const [user, setUser]           = useState<CurrentUser | null>(null);
   const [loading, setLoading]     = useState(true);
@@ -46,15 +61,20 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    // Récupère le token si on revient d'un redirect OAuth
+    extractTokenFromHash();
+
     const script = document.createElement('script');
     script.src   = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.onload = () => {
-      // callback défini ici une seule fois — c'est la seule façon fiable avec GIS
       const tc = google.accounts.oauth2.initTokenClient({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        scope:     'https://www.googleapis.com/auth/spreadsheets',
-        callback:  onTokenResponse,
+        client_id:    CONFIG.GOOGLE_CLIENT_ID,
+        scope:        'https://www.googleapis.com/auth/spreadsheets',
+        callback:     onTokenResponse,
+        // redirect_uri pour GitHub Pages — pas de popup, pas de postMessage bloqué
+        ux_mode:      'redirect',
+        redirect_uri: window.location.origin + window.location.pathname,
       });
       setTokenClient(tc);
 
@@ -64,9 +84,6 @@ export function useAuth() {
         auto_select: false,
       });
 
-      // Restore session — PAS de requestAccessToken au démarrage,
-      // les popups silencieuses sont bloquées par les navigateurs modernes.
-      // Le token sera demandé au premier write via ensureAccessToken.
       const saved = sessionStorage.getItem('user');
       if (saved) {
         setUser(JSON.parse(saved) as CurrentUser);
