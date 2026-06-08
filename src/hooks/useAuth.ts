@@ -53,9 +53,7 @@ export function useAuth() {
       const tc = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope:     'https://www.googleapis.com/auth/spreadsheets',
-        callback:  (resp: any) => {
-          if (!resp.error) setAccessToken(resp.access_token);
-        },
+        callback:  () => {}, // géré dynamiquement par ensureAccessToken
       });
       setTokenClient(tc);
 
@@ -70,8 +68,14 @@ export function useAuth() {
       if (saved) {
         const u = JSON.parse(saved) as CurrentUser;
         setUser(u);
-        // Silent token refresh
-        try { tc.requestAccessToken({ prompt: 'none' }); } catch (_) {}
+        // Silent token refresh au démarrage
+        try {
+          tc.callback = (resp: any) => {
+            if (!resp.error) setAccessToken(resp.access_token);
+            // En cas d'échec silencieux, ensureAccessToken s'en chargera au prochain write
+          };
+          tc.requestAccessToken({ prompt: 'none' });
+        } catch (_) {}
       }
 
       setAuthReady(true);
