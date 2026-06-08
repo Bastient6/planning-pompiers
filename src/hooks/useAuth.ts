@@ -50,9 +50,7 @@ export function useAuth() {
     script.src   = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.onload = () => {
-      // Le callback est défini ICI — c'est la seule façon fiable avec la GIS API.
-      // onTokenResponse est le point d'entrée unique qui résout/rejette la Promise
-      // en attente dans ensureAccessToken.
+      // callback défini ici une seule fois — c'est la seule façon fiable avec GIS
       const tc = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope:     'https://www.googleapis.com/auth/spreadsheets',
@@ -66,14 +64,12 @@ export function useAuth() {
         auto_select: false,
       });
 
-      // Restore session + silent token refresh
+      // Restore session — PAS de requestAccessToken au démarrage,
+      // les popups silencieuses sont bloquées par les navigateurs modernes.
+      // Le token sera demandé au premier write via ensureAccessToken.
       const saved = sessionStorage.getItem('user');
       if (saved) {
-        const u = JSON.parse(saved) as CurrentUser;
-        setUser(u);
-        // Refresh silencieux — onTokenResponse mettra à jour le token si OK,
-        // et ne fera rien de bloquant si refusé (ensureAccessToken gérera la popup au prochain write)
-        tc.requestAccessToken({ prompt: '' });
+        setUser(JSON.parse(saved) as CurrentUser);
       }
 
       setAuthReady(true);

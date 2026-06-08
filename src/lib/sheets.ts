@@ -6,10 +6,9 @@ const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // ── Token state ────────────────────────────────────────────
 let _accessToken = '';
-let _tokenExpiry = 0;
+let _tokenExpiry  = 0;
 let _tokenClient: any = null;
 
-// Resolve/reject de la Promise en cours d'acquisition de token
 let _pendingResolve: (() => void) | null = null;
 let _pendingReject: ((e: Error) => void) | null = null;
 
@@ -17,15 +16,14 @@ export function setTokenClient(tc: any) { _tokenClient = tc; }
 
 export function setAccessToken(token: string, expiresIn = 3400) {
   _accessToken = token;
-  _tokenExpiry = Date.now() + expiresIn * 1000;
+  _tokenExpiry  = Date.now() + expiresIn * 1000;
 }
 
 export function clearAccessToken() { _accessToken = ''; _tokenExpiry = 0; }
-export function hasAccessToken() { return !!_accessToken && Date.now() < _tokenExpiry; }
+export function hasAccessToken()   { return !!_accessToken && Date.now() < _tokenExpiry; }
 
-// Appelé par useAuth depuis le callback du tokenClient
+// Appelé par useAuth depuis le callback du tokenClient (seul endroit valide)
 export function onTokenResponse(resp: any) {
-  console.log('[token] onTokenResponse:', JSON.stringify(resp));
   if (!resp.error) {
     setAccessToken(resp.access_token);
     _pendingResolve?.();
@@ -33,19 +31,19 @@ export function onTokenResponse(resp: any) {
     _pendingReject?.(new Error('Erreur auth Google : ' + resp.error));
   }
   _pendingResolve = null;
-  _pendingReject = null;
+  _pendingReject  = null;
 }
 
 export async function ensureAccessToken(): Promise<void> {
-  console.log('[token] hasToken:', hasAccessToken(), 'client:', !!_tokenClient);
   if (hasAccessToken()) return;
   if (!_tokenClient) throw new Error('Token client non initialisé');
 
   return new Promise((resolve, reject) => {
     _pendingResolve = resolve;
-    _pendingReject = reject;
-    console.log('[token] requestAccessToken avec prompt:""');
-    _tokenClient.requestAccessToken({ prompt: '' });
+    _pendingReject  = reject;
+    // Pas de prompt:'none' — ça ouvre une popup bloquée par le navigateur.
+    // Sans prompt, Google réutilise la session existante si possible, sinon affiche le sélecteur.
+    _tokenClient.requestAccessToken();
   });
 }
 
@@ -109,7 +107,7 @@ export function parseSaisonData(
   rows: string[][],
   agents: Agent[]
 ): { cells: CellMap; gardes: GardeMap } {
-  const cells: CellMap = {};
+  const cells: CellMap  = {};
   const gardes: GardeMap = {};
   if (!rows || rows.length < 3) return { cells, gardes };
 
